@@ -1,82 +1,59 @@
-import * as React from 'react';
-import { StyleSheet, Text, Touchable, TouchableOpacity, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { ScrollView } from 'react-native-gesture-handler';
+import TabNavigator from './components/tabNavigator';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AddDevice from './components/addDevice';
+import { Platform, PermissionsAndroid} from 'react-native';
+import { useEffect } from 'react';
 
-function Devices() {
-  const blocks=[
-    'lampa','okno','piec','drzwi','test'
-  ]
-  const handleClick=(a:string)=>{
-    
-  }
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <View style={styles.page}>
-        {blocks.map((x)=>{return(<View  style={styles.container}><Text>{x}</Text></View>)})}
-        <View  style={styles.container}><TouchableOpacity onPress={()=>handleClick("add")}><Text>dodaj</Text></TouchableOpacity></View>
-      </View>
-    </View>
-  );
-}
+const Stack = createNativeStackNavigator();
 
-function Connection() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>a!</Text>
-    </View>
-  );
-}
-
-const Tab = createBottomTabNavigator();
 
 export default function App() {
+
+  const requestBluetoothPermission = async () => {
+    if (Platform.OS === 'ios') {
+      return true
+    }
+    if (Platform.OS === 'android' && PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION) {
+      const apiLevel = parseInt(Platform.Version.toString(), 10)
+  
+      if (apiLevel < 31) {
+        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION)
+        return granted === PermissionsAndroid.RESULTS.GRANTED
+      }
+      if (PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN && PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT) {
+        const result = await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+        ])
+  
+        return (
+          result['android.permission.BLUETOOTH_CONNECT'] === PermissionsAndroid.RESULTS.GRANTED &&
+          result['android.permission.BLUETOOTH_SCAN'] === PermissionsAndroid.RESULTS.GRANTED &&
+          result['android.permission.ACCESS_FINE_LOCATION'] === PermissionsAndroid.RESULTS.GRANTED
+        )
+      }
+    }
+  
+    // showErrorToast('Permission have not been granted')
+  
+    return false
+  }
+
+  useEffect(() => {
+    requestBluetoothPermission()
+  }, [])
+
   return (
     <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          tabBarIcon: ({ focused, color, size }) => {
-            let iconName;
-
-            if (route.name === 'Devices') {
-              iconName = focused
-                ? 'ios-information-circle'
-                : 'ios-information-circle-outline';
-            } else if (route.name === 'Connection') {
-              iconName = focused ? 'ios-list' : 'ios-list-outline';
-            }
-
-            // You can return any component that you like here!
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-          tabBarActiveTintColor: 'tomato',
-          tabBarInactiveTintColor: 'gray',
-        })}
-      >
-        <Tab.Screen name="Devices" component={Devices} />
-        <Tab.Screen name="Connection" component={Connection} />
-      </Tab.Navigator>
+      <Stack.Navigator screenOptions={{ headerShown: false,}}>
+        <Stack.Screen name="home" component={TabNavigator}/>
+        <Stack.Group screenOptions={{ presentation: 'modal' }}>
+          <Stack.Screen name='add' component={AddDevice}/>
+        </Stack.Group>
+      </Stack.Navigator>
     </NavigationContainer>
   );
   
 }
-const styles= StyleSheet.create({
-container:{
-  width:'40%',
-  height:100,
-  justifyContent:'center',
-  marginLeft:'5%',
-  marginBottom:10,
-  borderColor:'black',
-  borderWidth:3,
-
-},
-page:{
-  width:'100%',
-  flexDirection:'row',
-  flexWrap:'wrap',
-  justifyContent:'left',
-}
-})
