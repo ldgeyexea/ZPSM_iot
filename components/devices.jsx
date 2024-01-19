@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { manager } from './connectScreen';
+import {decode as atob, encode as btoa} from 'base-64'
+
 
 export default function Devices(props) {
 
@@ -12,6 +14,7 @@ export default function Devices(props) {
     const isFocused = useIsFocused();
   
     const [deviceItems, setDeviceItems] = useState([]);
+    const [connectedDevice, setConnectedDevice] = useState({})
 
     useEffect(() => {
         console.log("READ ASYNC")
@@ -22,7 +25,17 @@ export default function Devices(props) {
                 // console.log(devices)
                 setDeviceItems(devices)
             })
+        AsyncStorage.getItem("device")
+            .then(res => {
+                console.debug(res)
+                const dev = JSON.parse(res)
+                setConnectedDevice(dev)
+            })
     } ,[isFocused])
+
+    useEffect(() => {
+        console.info("CONNECTED DEVICE: ", connectedDevice)
+    }, [connectedDevice])
     
     const openAddMenu = () => {
       console.log("OPEN POPUP");
@@ -38,20 +51,35 @@ export default function Devices(props) {
     }
   
     const handleClick =(data)=>{
-        AsyncStorage.getItem("device")
-            .then(dev => {
-                dev = JSON.parse(dev);
-                if(dev) {
-                    manager.writeCharacteristicWithResponseForDevice(
-                        dev.id, dev.serviceUUIDs, dev.characteristicsUUID, btoa(data.command)
-                    ).then(resposne => {
-                        console.log("response: ", resposne)
-                    }).catch(err => {
-                        console.error(err)
-                    })
-                }
+        console.info("BUTTON CLICKED: ", data)
+        console.log("DEV: ", connectedDevice.name, " ", connectedDevice.id);
+
+        const connectionData = {
+            serviceUUID: 'FFE0',
+            characteristicUUID: 'FFE1',
+        }
+
+        manager.connectToDevice(connectedDevice.id)
+            .then(async dev => {
+                console.info("DEVICE CONNECTED")
+                const char = await dev.discoverAllServicesAndCharacteristics();
+                // console.log(char)
+
+
+                // return char
+
+                manager.writeCharacteristicWithResponseForDevice(
+                    char.id, connectionData.serviceUUID, connectionData.characteristicUUID,
+                    btoa(data.command)
+                ).then(res => {
+                    console.log("ARDUINO", res)
+                }).catch(err => {
+                    console.error(err)
+                })
             })
-      
+            .catch(err => {
+                console.error(err)
+            })
     }
     return (
       <GestureHandlerRootView style={{ alignItems: 'baseline' }} >

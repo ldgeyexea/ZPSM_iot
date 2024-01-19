@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { BleManager, Characteristic } from "react-native-ble-plx";
 import { ColorSpace } from "react-native-reanimated";
 
@@ -30,8 +30,10 @@ export default function ConnectScreen({navigation}) {
         setTimeout(() => {
             manager.stopDeviceScan();
 
-            const filtered = newDevices.filter((val, idx, slf) => slf.findIndex(val2 => (val2.id === val.id)) === idx)
-
+            const filtered = newDevices.filter((val, idx, slf) => slf.findIndex(val2 => (val2.id === val.id)) === idx).filter(el => {
+                return el.name !== null
+            })
+            
             setDevices(filtered)
         }, 5000)
 
@@ -56,18 +58,11 @@ export default function ConnectScreen({navigation}) {
         console.log("Connect START")
         console.log(device.id)
         setDevice(device.id)
-        const newDev = await manager.connectToDevice(device.id)
-            .then((res) => {
-                console.log(res);
-                console.log("Connect DONE") 
-                return AsyncStorage.setItem('device', JSON.stringify(device))
-                    .then(() => {
-                        navigation.goBack()
-                    })
-            }).catch(err => {
-                console.log("Connect ERROR") 
-                console.error(err)
+        return AsyncStorage.setItem('device', JSON.stringify(device))
+            .then(() => {
+                navigation.goBack()
             })
+        
 
         // device.dev.connent().then(res => {
         //     console.log("Connect DONE2") 
@@ -91,25 +86,58 @@ export default function ConnectScreen({navigation}) {
     }
 
     return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <TouchableOpacity onPress={() => {scanAndConnect()}}><Text>Wyszukaj urządzenia</Text></TouchableOpacity>
-            {searching && 
-            <Text>Searching...</Text>}
+        <View style={{width: '100%',  flex: 1, justifyContent: 'space-around', alignItems: 'center' }}>
+            
 
              
-            <View>
-                <Text>DEVICE FOUND:</Text>
+            <View style={[styles.container, ]}>
+                <Text style={[styles.header]}>DEVICE FOUND</Text>
+                {searching && 
+                <Text>Searching...</Text>}
                 {
-                    devices.map(device =>  {
-                        return <TouchableOpacity onPress={() => saveDevice(device)}>
-                            <Text>{device.name} - ({device.id})</Text>
+                    devices.map((device, idx) =>  {
+                        return <TouchableOpacity style={[styles.button]} key={idx} onPress={() => saveDevice(device)}>
+                            <Text>{device.name}</Text>
+                            <Text>({device.id})</Text>
                         </TouchableOpacity>})
                 }
+            </View>
+            <View>
+                <TouchableOpacity style={[styles.button2]} onPress={() => {scanAndConnect()}}><Text>Wyszukaj urządzenia</Text></TouchableOpacity>
                 
-                <TouchableOpacity>
-                    <Text>SAVE DEVICE</Text>
-                </TouchableOpacity>
             </View>
         </View>
       );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        width: '100%'
+    },
+
+    header: {
+        fontSize: 30,
+        fontWeight: 'bold',
+        marginBottom:20,
+        textAlign: 'center'
+    },
+
+    button: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 20,
+        margin:10,
+        backgroundColor: "#dddddd",
+        borderRadius: 10,
+
+    },
+
+    button2: {
+        width: "50%",
+        padding: 5,
+        borderWidth: 1,
+        borderRadius: 10
+    }
+})

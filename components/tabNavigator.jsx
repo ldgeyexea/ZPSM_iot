@@ -30,16 +30,16 @@ export default function TabNavigator() {
 
             if (route.name === 'Devices') {
               iconName = focused
-                ? 'ios-information-circle'
-                : 'ios-information-circle-outline';
+                ? ''
+                : '';
             } else if (route.name === 'Connection') {
-              iconName = focused ? 'ios-list' : 'ios-list-outline';
+              iconName = focused ? '' : '';
             }
 
             // You can return any component that you like here!
             return <Ionicons name={iconName} size={size} color={color} />;
           },
-          tabBarActiveTintColor: 'tomato',
+          tabBarActiveTintColor: 'blue',
           tabBarInactiveTintColor: 'gray',
         })}
       >
